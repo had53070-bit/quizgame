@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quiz Game 4 Người — Chiếc Bình Nứt</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+html,body{height:100%;margin:0;display:flex;align-items:center;justify-content:center;
+background:url('https://cdn.pixabay.com/photo/2015/01/08/18/26/desktop-593327_1280.jpg') no-repeat center center fixed;background-size:cover;
+font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#fff;}
+.computer-frame{width:1000px;max-width:96%;border-radius:18px;padding:18px;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.55));
+box-shadow:0 30px 80px rgba(2,6,23,0.7);border:8px solid rgba(255,255,255,0.04);margin:auto;}
+h1{text-align:center;margin:0 0 14px;font-size:26px}
+.container{background:rgba(255,255,255,0.08);padding:18px;border-radius:12px;text-align:center}
+.players{display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.players input{width:140px;padding:8px;border-radius:8px;border:none;text-align:center}
+.start-btn{display:inline-block;margin:8px 6px;padding:10px 18px;border-radius:10px;border:none;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;font-weight:700;cursor:pointer;transition:transform .2s}
+.start-btn:hover{transform:scale(1.03)}
+.game-area{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap}
+.left{flex:1}
+.right{width:320px}
+.question-card{background:rgba(255,255,255,0.04);padding:14px;border-radius:10px}
+.answers button{display:block;width:100%;padding:10px;margin-bottom:8px;border-radius:8px;border:none;background:#fff;color:#111;cursor:pointer;transition:all 0.3s}
+.score-board{background:rgba(255,255,255,0.04);padding:12px;border-radius:10px}
+.score-item{display:flex;align-items:center;justify-content:space-between;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;margin-bottom:8px;transition:all 0.3s}
+.score-item.top1 { border: 3px solid gold; box-shadow: 0 0 15px gold; }
+.score-item.top2 { border: 3px solid silver; box-shadow: 0 0 15px silver; }
+.score-item.top3 { border: 3px solid #cd7f32; box-shadow: 0 0 15px #cd7f32; }
+.score-value{font-size:18px;font-weight:700;transition:all 0.3s}
+.score-btn { font-weight:700; border-radius:8px; padding:6px 12px; cursor:pointer; transition: transform 0.2s, box-shadow 0.2s; border:none; color:#fff;}
+.score-btn:hover { transform: scale(1.1); box-shadow:0 4px 12px rgba(0,0,0,0.4); }
+#chartFull{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column}
+#chartFull canvas{width:80%!important;height:60%!important;background:#111;border-radius:12px;padding:8px}
+.small-muted{font-size:13px;color:rgba(255,255,255,0.7)}
+@media(max-width:860px){.game-area{flex-direction:column}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="computer-frame">
+  <h1>🎉 Quiz 4 Người — Chiếc Bình Nứt 🎉</h1>
+
+  <div class="container" id="startScreen">
+    <div class="small-muted">Nhấn Bắt đầu để vào vòng quay chọn số may mắn</div>
+    <button class="start-btn" id="startBtn">Bắt đầu</button>
+  </div>
+
+  <div class="container" id="wheelScreen" style="display:none;">
+    <h2>🎡 Vòng quay (43 số)</h2>
+    <canvas id="wheelCanvas" width="400" height="400" style="border-radius:50%"></canvas>
+    <div style="margin-top:8px">
+      <button class="start-btn" id="spinBtn">Quay 1 số</button>
+      <button class="start-btn" id="resetBtn">Reset</button>
+    </div>
+    <div id="luckyNumbers" class="small-muted" style="margin-top:10px"></div>
+    <div style="margin-top:10px"><button class="start-btn" id="enterNameBtn" style="display:none">Nhập tên</button></div>
+  </div>
+
+  <div class="container" id="nameScreen" style="display:none;">
+    <h2>Nhập tên 4 người chơi</h2>
+    <div class="players">
+      <input id="name1" placeholder="Người 1">
+      <input id="name2" placeholder="Người 2">
+      <input id="name3" placeholder="Người 3">
+      <input id="name4" placeholder="Người 4">
+    </div>
+    <div style="margin-top:10px">
+      <button class="start-btn" id="startGameBtn">Bắt đầu trò chơi</button>
+      <button class="start-btn" id="backToWheelBtn">Quay lại vòng quay</button>
+    </div>
+  </div>
+
+  <div class="container" id="gameScreen" style="display:none">
+    <div class="game-area">
+      <div class="left">
+        <div class="question-card" id="questionCard">
+          <div class="question-title small-muted" id="questionTitle">Câu 1</div>
+          <div class="question-text" id="questionText"></div>
+          <div class="answers" id="answers"></div>
+          <div style="margin-top:8px">
+            <button class="start-btn" id="nextBtn" style="display:none">Tiếp tục</button>
+            <button class="start-btn" style="background:linear-gradient(90deg,#f43f5e,#f97316)" id="restartBtn">Restart</button>
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="score-board" id="scoreBoard"></div>
+        <canvas id="scoreChart" width="300" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="chartFull">
+  <canvas id="scoreChartFull"></canvas>
+  <div style="margin-top:12px">
+    <button class="start-btn" id="closeChartBtn">Đóng biểu đồ</button>
+  </div>
+</div>
+
+<script>
+const questions=[
+ {q:"Hình ảnh hai chiếc bình trong câu chuyện tượng trưng cho điều gì?",a:["Sự khác nhau về hình dáng, màu sắc của đồ vật","Những con người với ưu điểm và khiếm khuyết riêng","Những công cụ lao động của người nông dân","Sự đối lập giữa cái cũ và cái mới"],correct:1},
+ {q:"Sự dằn vặt của chiếc bình nứt thể hiện tâm trạng nào của con người?",a:["Niềm tự hào về giá trị bản thân","Sự mặc cảm, tự ti khi thấy mình không hoàn hảo","Niềm vui khi được cống hiến","Sự thờ ơ, vô cảm trước cuộc sống"],correct:1},
+ {q:"Ông chủ đã có cách nhìn nhận và lời khuyên ra sao đối với chiếc bình nứt?",a:["Khuyên chiếc bình hãy cố gắng che giấu khiếm khuyết","Khẳng định vết nứt đã tạo nên giá trị và cái đẹp riêng","Đem bỏ chiếc bình vì không còn giá trị sử dụng","Đề nghị sửa chữa để chiếc bình trở lại hoàn hảo"],correct:1},
+ {q:"Luống hoa mọc bên đường mà chiếc bình tưới được có ý nghĩa gì?",a:["Trang trí cho con đường thêm đẹp","Biểu tượng cho những giá trị tích cực nảy nở từ khiếm khuyết","Thể hiện sự chăm chỉ của ông chủ","Chứng minh chiếc bình không còn vô dụng"],correct:1},
+ {q:"Thông điệp sâu xa nhất mà câu chuyện muốn gửi gắm đến chúng ta là gì?",a:["Con người cần hoàn hảo để được công nhận","Chỉ khi mạnh mẽ mới có thể thành công","Khi biết chấp nhận và phát huy khiếm khuyết, ta sẽ tạo nên giá trị riêng","Cuộc sống vốn nhiều bất công, khó thay đổi"],correct:2}
+];
+
+let current=0, scores=[0,0,0,0], names=[], luckyNumbers=[];
+
+function drawWheel(rotation=0){
+  const canvas=document.getElementById('wheelCanvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const segments=43, angleStep=2*Math.PI/segments;
+  ctx.clearRect(0,0,400,400);
+  ctx.save(); ctx.translate(200,200); ctx.rotate(rotation);
+  for(let i=0;i<segments;i++){
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.fillStyle=i%2===0 ? '#7c3aed' : '#06b6d4';
+    ctx.arc(0,0,200,i*angleStep,(i+1)*angleStep);
+    ctx.fill();
+    ctx.save(); ctx.rotate(i*angleStep+angleStep/2);
+    ctx.fillStyle='white'; ctx.font='12px Arial';
+    ctx.textAlign='right'; ctx.fillText(i+1,180,4); ctx.restore();
+  }
+  ctx.restore();
+}
+
+function spinWheel(){
+  if(luckyNumbers.length>=4) return;
+  const target=Math.floor(Math.random()*43);
+  const duration=2000, start=performance.now(), startRot=Math.random()*2*Math.PI;
+  function animate(t){
+    const progress=Math.min(1,(t-start)/duration);
+    const ease=Math.pow(progress,0.5);
+    drawWheel(startRot + ease*10*Math.PI + target*2*Math.PI/43);
+    if(progress<1) requestAnimationFrame(animate);
+    else {
+      const number=target+1;
+      if(luckyNumbers.includes(number)){ spinWheel(); return; }
+      luckyNumbers.push(number);
+      document.getElementById('luckyNumbers').textContent='Số may mắn: '+luckyNumbers.join(', ');
+      if(luckyNumbers.length===4) document.getElementById('enterNameBtn').style.display='inline-block';
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const startBtn = document.getElementById('startBtn');
+  const wheelScreen = document.getElementById('wheelScreen');
+  const startScreen = document.getElementById('startScreen');
+
+  startBtn.addEventListener('click', ()=>{
+    startScreen.style.display='none';
+    wheelScreen.style.display='block';
+    setTimeout(()=>drawWheel(0),50);
+  });
+
+  document.getElementById('spinBtn').addEventListener('click',spinWheel);
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    luckyNumbers=[]; document.getElementById('luckyNumbers').textContent=''; document.getElementById('enterNameBtn').style.display='none';
+  });
+  document.getElementById('enterNameBtn').addEventListener('click', ()=>{
+    wheelScreen.style.display='none'; document.getElementById('nameScreen').style.display='block';
+  });
+});
+</script>
+</body>
+</html>
